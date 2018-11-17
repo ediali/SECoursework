@@ -115,20 +115,27 @@ public class AuctionHouseTest {
         assertOK(house.noteInterest("BuyerA", 1));
         assertOK(house.noteInterest("BuyerA", 5));
         assertOK(house.noteInterest("BuyerB", 1));
-        assertOK(house.noteInterest("BuyerB", 2));
+        assertOK(house.noteInterest("BuyerB", 2));				// ADDED THIS LINE TO TEST REGISTERING INTEREST MULTIPLE TIMES
+        assertError(house.noteInterest("BuyerB", 2));
         if (endPoint == 4) return;
         
-        assertOK(house.openAuction("Auctioneer1", "@Auctioneer1", 1));
+        Money m70 = new Money("70.00");
+        assertError(house.makeBid("BuyerA", 1, m70));				// ADDED THIS TO TEST MAKING A BID ON A LOT WHICH IS NOT IN AUCTION
 
+        assertError(house.openAuction("Auctioneer1", "@Auctioneer1", 7));  // ADDED THIS LINE TO TEST OPENING AN ACUTION FOR A NON-EXISTENT LOT
+       
+        assertOK(house.openAuction("Auctioneer1", "@Auctioneer1", 1));
+        
         messagingService.expectAuctionOpened("@BuyerA", 1);
         messagingService.expectAuctionOpened("@BuyerB", 1);
         messagingService.expectAuctionOpened("@SellerY", 1);
         messagingService.verify(); 
         if (endPoint == 5) return;
         
-        Money m70 = new Money("70.00");
+        assertError(house.makeBid("BuyerD", 1, m70));				// ADDED THIS TO TEST AN UNREGISTERED BUYER MAKING A BID	
+
         assertOK(house.makeBid("BuyerA", 1, m70));
-        
+               
         messagingService.expectBidReceived("@BuyerB", 1, m70);
         messagingService.expectBidReceived("@Auctioneer1", 1, m70);
         messagingService.expectBidReceived("@SellerY", 1, m70);
@@ -144,27 +151,46 @@ public class AuctionHouseTest {
         messagingService.verify();
         if (endPoint == 7) return;
         
+        Money m101 = new Money("101");
+        assertError(house.makeBid("BuyerB", 1, m101));
+        
+        if (endPoint == 8) return;
+       
         assertSale(house.closeAuction("Auctioneer1",  1));
         messagingService.expectLotSold("@BuyerA", 1);
         messagingService.expectLotSold("@BuyerB", 1);
         messagingService.expectLotSold("@SellerY", 1);
-        messagingService.verify();       
-
+        messagingService.verify();  
+        
+        assertError(house.openAuction("Auctioneer1", "@Auctioneer1", 1));
+        if (endPoint == 9) return;
+        
         bankingService.expectTransfer("BB A/C",  "BB-auth",  "AH A/C", new Money("110.00"));
         bankingService.expectTransfer("AH A/C",  "AH-auth",  "SY A/C", new Money("85.00"));
-        bankingService.verify();
-        
+        bankingService.verify();       
     }
     
     @Test
-    public void testEmptyCatalogue() {
+    public void testEmptyCatalogue() {	
         logger.info(makeBanner("emptyLotStore"));
-
         List<CatalogueEntry> expectedCatalogue = new ArrayList<CatalogueEntry>();
         List<CatalogueEntry> actualCatalogue = house.viewCatalogue();
 
         assertEquals(expectedCatalogue, actualCatalogue);
 
+    }
+    
+    @Test
+    public void testOpenAuctionSold() {
+    		logger.info(makeBanner("testOpenAuctionSold"));
+    		runStory(9);
+    		
+    }
+    
+    @Test
+    public void testIncrementPrice() {
+    		logger.info(makeBanner("lowerThanIncrement"));	
+    		runStory(8);
     }
 
     @Test
@@ -179,7 +205,13 @@ public class AuctionHouseTest {
         runStory(1);     
         assertError(house.registerSeller("SellerY", "@SellerZ", "SZ A/C"));       
     }
-
+    
+    @Test
+    public void testRegisterBuyerDuplicateNames() {
+    		logger.info(makeBanner("testRegisterBuyerDuplicateNames"));
+        runStory(3);     
+        assertError(house.registerBuyer("BuyerA", "@BuyerA", "BA A/C", "BA-Auth"));
+    }
     @Test
     public void testAddLot() {
         logger.info(makeBanner("testAddLot"));
@@ -212,7 +244,7 @@ public class AuctionHouseTest {
         logger.info(makeBanner("testNoteInterest"));
         runStory(4);
     }
-      
+    
     @Test
     public void testOpenAuction() {
         logger.info(makeBanner("testOpenAuction"));
@@ -229,7 +261,5 @@ public class AuctionHouseTest {
     public void testCloseAuctionWithSale() {
         logger.info(makeBanner("testCloseAuctionWithSale"));
         runStory(8);
-    }
-     
-    
+    }  
 }
