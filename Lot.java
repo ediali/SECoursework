@@ -9,8 +9,10 @@ public class Lot {
 	public String description;
 	public Money reservePrice;
 	public List<String> interested = new ArrayList<String>();
-	public HashMap<String, Money> bids;
-	
+	public HashMap<String, Money> bids = new HashMap<>();
+	public String auctioneerAddress;
+   	public Money currentBid = new Money("0.0");
+
 	public Lot(String sellerName,
             int number,
             String description,
@@ -52,6 +54,5 @@ public class Lot {
 	public int getNumber() {
 		return number;
 	} 
-	
 	
 }
